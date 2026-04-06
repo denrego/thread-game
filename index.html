@@ -127,6 +127,31 @@
 
   .game-area { width: 100%; display: flex; flex-direction: column; align-items: center; }
 
+  /* HELP BUTTON */
+  .help-btn { background: none; border: 2px solid var(--border); border-radius: 50%; width: 32px; height: 32px; font-size: 15px; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; touch-action: manipulation; transition: all 0.15s; }
+  .help-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* HOW TO PLAY MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,23,20,0.55); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal-panel { background: var(--bg); border-radius: 12px; max-width: 420px; width: 100%; padding: 28px 24px 24px; position: relative; max-height: 90vh; overflow-y: auto; }
+  .modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; touch-action: manipulation; padding: 4px 6px; line-height: 1; }
+  .modal-close:hover { color: var(--text); }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: 3px; text-align: center; text-transform: uppercase; margin-bottom: 4px; }
+  .modal-tagline { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 22px; }
+  .modal-section { margin-bottom: 16px; }
+  .modal-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 8px; }
+  .modal-text { font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 6px; }
+  .color-key { display: flex; flex-direction: column; gap: 8px; }
+  .color-key-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text); }
+  .color-swatch { width: 22px; height: 22px; border-radius: 4px; flex-shrink: 0; }
+  .color-swatch.correct { background: var(--correct); }
+  .color-swatch.present { background: var(--present); }
+  .color-swatch.absent { background: var(--absent); border: 1px solid var(--border-dark); }
+  .modal-divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .modal-play-btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius); background: var(--accent); color: white; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; touch-action: manipulation; margin-top: 6px; }
+  .modal-play-btn:hover { background: var(--accent-dark); }
+
   @keyframes flipIn { 0% { transform: rotateX(0deg); } 50% { transform: rotateX(-90deg); } 100% { transform: rotateX(0deg); } }
   @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
   @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
@@ -143,7 +168,41 @@
     <div class="puzzle-num" id="puzzle-num">Loading...</div>
     <div class="streak-badge" id="streak-badge">🔥 0 day streak</div>
   </div>
+  <button class="help-btn" onclick="openModal()" aria-label="How to play">?</button>
 </header>
+
+<!-- How to Play Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal-panel">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
+    <div class="modal-title">Thread</div>
+    <div class="modal-tagline">A daily word puzzle with a twist</div>
+    <div class="modal-section">
+      <div class="modal-section-title">How to play</div>
+      <div class="modal-text">Guess <strong>5 five-letter words</strong> — one at a time, Wordle-style. You have 6 attempts per word.</div>
+      <div class="modal-text">After solving all five, figure out the hidden <em>thread</em> that connects them all.</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Colour guide</div>
+      <div class="color-key">
+        <div class="color-key-row"><div class="color-swatch correct"></div><strong>Green</strong> &mdash; right letter, right spot</div>
+        <div class="color-key-row"><div class="color-swatch present"></div><strong>Yellow</strong> &mdash; right letter, wrong spot</div>
+        <div class="color-key-row"><div class="color-swatch absent"></div><strong>Grey</strong> &mdash; letter not in this word</div>
+      </div>
+    </div>
+    <div class="modal-divider"></div>
+    <div class="modal-section">
+      <div class="modal-section-title">The thread</div>
+      <div class="modal-text">Once you've solved all 5 words, guess the theme connecting them. An AI scores your answer — close enough counts.</div>
+      <div class="modal-text" style="color:var(--text-muted); font-size:13px;">Example: COBRA · PLANK · LOTUS · CRANE · CAMEL<br><span style="color:var(--accent); font-weight:600;">→ Yoga Poses ✓</span></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">A new puzzle every day</div>
+      <div class="modal-text">One puzzle per day. Come back tomorrow for a new one.</div>
+    </div>
+    <button class="modal-play-btn" onclick="closeModal()">Let's play! 🧵</button>
+  </div>
+</div>
 
 <!-- Loading screen shown while fetching today's puzzle -->
 <div class="loading-screen" id="loading-screen">
@@ -469,6 +528,16 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter')submitGuess();else if(e.key==='Backspace')removeLetter();else if(/^[a-zA-Z]$/.test(e.key))addLetter(e.key.toUpperCase());
 });
 document.getElementById('theme-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitTheme();});
+
+// ── HOW TO PLAY MODAL ────────────────────────────────────────
+function openModal() { document.getElementById('modal-overlay').classList.add('show'); }
+function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+// Auto-show on first ever visit
+if (!localStorage.getItem('thread_seen_instructions')) {
+  setTimeout(() => { openModal(); localStorage.setItem('thread_seen_instructions', '1'); }, 500);
+}
 
 // Start!
 loadPuzzle();
