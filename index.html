@@ -63,7 +63,7 @@
 
   .keyboard { width: 100%; max-width: 500px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
   .kb-row { display: flex; justify-content: center; gap: 5px; }
-  .key { height: 52px; min-width: 34px; flex: 1; max-width: 42px; border-radius: var(--radius); border: none; background: var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; text-transform: uppercase; transition: background 0.15s, transform 0.08s; user-select: none; }
+  .key { height: 52px; min-width: 34px; flex: 1; max-width: 42px; border-radius: var(--radius); border: none; background: var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; text-transform: uppercase; transition: background 0.15s, transform 0.08s; user-select: none; touch-action: manipulation; }
   .key:active { transform: scale(0.93); }
   .key.wide { max-width: 58px; font-size: 11px; flex: 1.5; }
   .key.correct { background: var(--correct); color: white; }
