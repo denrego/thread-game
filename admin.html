@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THREAD — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf9f7; --surface: #ffffff; --border: #e8e4de; --border-dark: #c8c0b4;
+    --text: #1a1714; --text-muted: #9b9189; --accent: #c9622e; --accent-light: #f5e8e0;
+    --accent-dark: #a34d23; --correct: #4a7c59; --correct-light: #e8f2eb;
+    --present: #b5883a; --radius: 4px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  /* LOGIN */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 36px 28px; width: 100%; max-width: 360px; text-align: center; }
+  .login-logo { font-family: 'DM Serif Display', serif; font-size: 28px; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 6px; }
+  .login-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+  .login-input { width: 100%; padding: 13px 16px; border: 2px solid var(--border-dark); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 16px; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.15s; margin-bottom: 12px; }
+  .login-input:focus { border-color: var(--accent); }
+  .login-btn { width: 100%; padding: 13px; border: none; border-radius: var(--radius); background: var(--accent); color: white; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; touch-action: manipulation; }
+  .login-btn:hover { background: var(--accent-dark); }
+  .login-error { font-size: 13px; color: var(--accent); margin-top: 10px; min-height: 18px; }
+
+  /* MAIN */
+  .main { display: none; max-width: 600px; margin: 0 auto; padding: 0 0 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .header-logo { font-family: 'DM Serif Display', serif; font-size: 20px; letter-spacing: 4px; text-transform: uppercase; }
+  .header-badge { font-size: 11px; color: var(--text-muted); background: var(--border); border-radius: 20px; padding: 3px 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .logout-btn { font-size: 12px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; cursor: pointer; touch-action: manipulation; }
+
+  /* STATS ROW */
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 20px 20px; }
+  .stat-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 14px 12px; text-align: center; }
+  .stat-val { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+
+  /* SECTION */
+  .section { padding: 0 20px; margin-bottom: 24px; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 12px; }
+
+  /* TODAY CARD */
+  .today-card { background: var(--surface); border: 2px solid var(--accent); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+  .today-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+  .today-theme { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); margin-bottom: 10px; }
+  .today-words { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .word-chip { background: var(--correct-light); border: 1.5px solid var(--correct); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 600; color: var(--correct); text-transform: uppercase; letter-spacing: 1px; }
+  .today-meta { font-size: 12px; color: var(--text-muted); }
+
+  /* PUZZLE LIST */
+  .puzzle-row { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+  .puzzle-row:active { border-color: var(--accent); }
+  .puzzle-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .puzzle-date { font-size: 13px; font-weight: 600; color: var(--text); }
+  .diff-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 20px; }
+  .diff-badge.easy { background: var(--correct-light); color: var(--correct); }
+  .diff-badge.medium { background: #e8f0fe; color: #1a56a3; }
+  .diff-badge.hard { background: #fff3e0; color: #b56a00; }
+  .diff-badge.expert { background: #fce8e8; color: #b53030; }
+  .puzzle-theme { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text); margin-bottom: 4px; }
+  .puzzle-words-preview { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* EXPANDED */
+  .puzzle-expanded { display: none; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border); }
+  .puzzle-expanded.open { display: block; }
+  .exp-words { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .exp-word { background: var(--accent-light); border: 1.5px solid var(--accent); border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+  .supabase-link { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 600; }
+  .supabase-link:hover { text-decoration: underline; }
+
+  /* EMPTY / LOADING */
+  .loading-msg { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
+  .empty-msg { text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 14px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; }
+
+  /* FILTER BAR */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
+  .filter-btn { font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; white-space: nowrap; touch-action: manipulation; transition: all 0.15s; }
+  .filter-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+
+  /* REFRESH */
+  .refresh-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; cursor: pointer; touch-action: manipulation; margin: 0 20px 20px; }
+  .refresh-btn:active { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-wrap" id="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">Thread</div>
+    <div class="login-sub">Admin Dashboard</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="Password" autocomplete="current-password" />
+    <button class="login-btn" onclick="checkPassword()">Enter</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div class="main" id="main">
+  <header>
+    <div class="header-logo">Thread</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="header-badge">Admin</div>
+      <button class="logout-btn" onclick="logout()">Log out</button>
+    </div>
+  </header>
+
+  <div class="stats" id="stats-row">
+    <div class="stat-card"><div class="stat-val" id="stat-total">—</div><div class="stat-label">Total Puzzles</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-upcoming">—</div><div class="stat-label">Upcoming</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-days">—</div><div class="stat-label">Days Covered</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Today</div>
+    <div id="today-section"><div class="loading-msg">Loading...</div></div>
+  </div>
+
+  <button class="refresh-btn" onclick="loadPuzzles()">↻ Refresh</button>
+
+  <div class="section">
+    <div class="section-title">All Puzzles</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('upcoming', this)">Upcoming</button>
+      <button class="filter-btn" onclick="setFilter('past', this)">Past</button>
+      <button class="filter-btn" onclick="setFilter('easy', this)">Easy</button>
+      <button class="filter-btn" onclick="setFilter('medium', this)">Medium</button>
+      <button class="filter-btn" onclick="setFilter('hard', this)">Hard</button>
+      <button class="filter-btn" onclick="setFilter('expert', this)">Expert</button>
+    </div>
+    <div id="puzzle-list"><div class="loading-msg">Loading puzzles...</div></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://oicbrqulsrwdijygrxsm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pY2JycXVsc3J3ZGlqeWdyeHNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3Nzg0NDQsImV4cCI6MjA4OTM1NDQ0NH0.HpHoMN3AD5MRFlsj0UxyvISZWiiDXLrr4C0hUcuG3gA';
+const ADMIN_PASSWORD = 'thread2026';
+const SUPABASE_TABLE_URL = 'https://supabase.com/dashboard/project/oicbrqulsrwdijygrxsm/editor';
+
+let allPuzzles = [];
+let currentFilter = 'all';
+
+// ── AUTH ─────────────────────────────────────────────────────
+function checkPassword() {
+  const val = document.getElementById('pw-input').value;
+  if (val === ADMIN_PASSWORD) {
+    sessionStorage.setItem('thread_admin', '1');
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+    loadPuzzles();
+  } else {
+    document.getElementById('login-error').textContent = 'Incorrect password.';
+    document.getElementById('pw-input').value = '';
+  }
+}
+function logout() {
+  sessionStorage.removeItem('thread_admin');
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('pw-input').value = '';
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
+if (sessionStorage.getItem('thread_admin')) {
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  loadPuzzles();
+}
+
+// ── DATA ─────────────────────────────────────────────────────
+async function loadPuzzles() {
+  document.getElementById('puzzle-list').innerHTML = '<div class="loading-msg">Loading puzzles...</div>';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/puzzles?select=*&order=publish_date.asc`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    allPuzzles = await res.json();
+    renderDashboard();
+  } catch(e) {
+    document.getElementById('puzzle-list').innerHTML = '<div class="empty-msg">Could not load puzzles. Check your connection.</div>';
+  }
+}
+
+function renderDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayPuzzle = allPuzzles.find(p => p.publish_date === today);
+  const upcoming = allPuzzles.filter(p => p.publish_date > today);
+  const lastDate = allPuzzles.length ? allPuzzles[allPuzzles.length - 1].publish_date : today;
+  const daysCovered = Math.round((new Date(lastDate) - new Date(today)) / 86400000) + 1;
+
+  // Stats
+  document.getElementById('stat-total').textContent = allPuzzles.length;
+  document.getElementById('stat-upcoming').textContent = upcoming.length;
+  document.getElementById('stat-days').textContent = Math.max(0, daysCovered);
+
+  // Today
+  const todayEl = document.getElementById('today-section');
+  if (todayPuzzle) {
+    todayEl.innerHTML = `
+      <div class="today-card">
+        <div class="today-label">📅 ${formatDate(todayPuzzle.publish_date)}</div>
+        <div class="today-theme">${todayPuzzle.theme}</div>
+        <div class="today-words">${todayPuzzle.words.map(w => `<span class="word-chip">${w}</span>`).join('')}</div>
+        <div class="today-meta">Difficulty: <strong>${todayPuzzle.difficulty}</strong> &nbsp;·&nbsp; Puzzle #${todayPuzzle.id}</div>
+      </div>`;
+  } else {
+    todayEl.innerHTML = '<div class="empty-msg">⚠️ No puzzle found for today. Go to Supabase and add one.</div>';
+  }
+
+  renderPuzzleList();
+}
+
+function renderPuzzleList() {
+  const today = new Date().toISOString().split('T')[0];
+  let filtered = allPuzzles;
+  if (currentFilter === 'upcoming') filtered = allPuzzles.filter(p => p.publish_date >= today);
+  else if (currentFilter === 'past') filtered = allPuzzles.filter(p => p.publish_date < today).reverse();
+  else if (['easy','medium','hard','expert'].includes(currentFilter)) filtered = allPuzzles.filter(p => p.difficulty === currentFilter);
+
+  const el = document.getElementById('puzzle-list');
+  if (!filtered.length) { el.innerHTML = '<div class="empty-msg">No puzzles match this filter.</div>'; return; }
+
+  el.innerHTML = filtered.map(p => {
+    const isToday = p.publish_date === today;
+    const isPast = p.publish_date < today;
+    return `
+    <div class="puzzle-row" onclick="toggleExpand('puzzle-${p.id}')">
+      <div class="puzzle-row-top">
+        <div class="puzzle-date">${isToday ? '📅 Today' : formatDate(p.publish_date)}${isPast && !isToday ? ' ✓' : ''}</div>
+        <span class="diff-badge ${p.difficulty}">${p.difficulty}</span>
+      </div>
+      <div class="puzzle-theme">${p.theme}</div>
+      <div class="puzzle-words-preview">${p.words.join(' · ')}</div>
+      <div class="puzzle-expanded" id="puzzle-${p.id}">
+        <div class="exp-words">${p.words.map(w => `<span class="exp-word">${w}</span>`).join('')}</div>
+        <a class="supabase-link" href="${SUPABASE_TABLE_URL}" target="_blank">Edit in Supabase →</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleExpand(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPuzzleList();
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+</script>
+</body>
+</html>
