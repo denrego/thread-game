@@ -520,6 +520,7 @@ function updateNextTimer() {
 function copyShare() {
   navigator.clipboard.writeText(document.getElementById('share-text').textContent).then(()=>{
     const btn=document.querySelector('.share-btn');btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='📋 Share Result',2000);
+    if(typeof gtag!=='undefined') gtag('event','share',{method:'copy',content_type:'puzzle_result',puzzle_id:PUZZLE.id});
   });
 }
 function showMsg(text,type=''){const el=document.getElementById('message');el.textContent=text;el.className='message'+(type?` ${type}`:'');}
