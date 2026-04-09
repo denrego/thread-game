@@ -78,6 +78,14 @@
   .key.present { background: var(--present); color: white; }
   .key.absent { background: #d4d0ca; color: var(--absent-text); }
 
+  @media (max-width: 380px) {
+    .tile { width: 46px; height: 46px; font-size: 18px; }
+    .key { height: 44px; min-width: 26px; font-size: 11px; }
+    .key.wide { max-width: 50px; font-size: 9px; }
+    .keyboard { padding: 6px 6px 8px; gap: 5px; }
+    .kb-row { gap: 4px; }
+  }
+
   /* THEME PAGE */
   .theme-page { display: none; width: 100%; max-width: 500px; padding: 20px; flex-direction: column; gap: 18px; animation: bounceIn 0.4s ease; }
   .theme-page.show { display: flex; }
@@ -90,6 +98,7 @@
   .theme-question em { font-style: italic; font-family: 'DM Serif Display', serif; color: var(--accent); font-size: 17px; }
   .ai-badge { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; width: fit-content; margin: 0 auto; }
   .ai-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  .theme-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-align: center; }
   .theme-input { width: 100%; padding: 14px 16px; border: 2px solid var(--border-dark); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500; color: var(--text); background: var(--surface); outline: none; transition: border-color 0.15s; }
   .theme-input:focus { border-color: var(--accent); }
   .theme-input::placeholder { color: var(--text-muted); font-weight: 400; }
@@ -127,6 +136,7 @@
   .theme-reveal { background: var(--accent-light); border: 1.5px solid var(--accent); border-radius: 8px; padding: 16px; }
   .theme-reveal-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px; font-weight: 600; }
   .theme-reveal-word { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text); }
+  .score-comparison { font-size: 13px; color: var(--text-muted); text-align: center; margin: 8px 0 4px; min-height: 20px; font-weight: 500; }
   .share-text { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre; text-align: left; overflow-x: auto; }
   .share-btn { width: 100%; padding: 14px; border: 2px solid var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
   .share-btn:hover { background: var(--accent); color: white; }
@@ -264,7 +274,8 @@
   <div class="revealed-words" id="revealed-words"></div>
   <div class="ai-badge"><div class="ai-dot"></div>AI-powered — any reasonable answer accepted</div>
   <div class="theme-question">What's the <em>thread</em> connecting these five words?</div>
-  <input class="theme-input" id="theme-input" type="text" placeholder="Type your answer here..." maxlength="60" autocomplete="off" autocorrect="off" spellcheck="false" />
+  <div class="theme-hint">Type a phrase — any number of words, like "Kitchen Things" or "Ocean Creatures"</div>
+  <input class="theme-input" id="theme-input" type="text" placeholder="e.g. Kitchen Things, Ocean Creatures..." maxlength="60" autocomplete="off" autocorrect="off" spellcheck="false" />
   <button class="theme-submit" id="theme-submit" onclick="submitTheme()">Submit Answer</button>
   <div class="ai-thinking" id="ai-thinking">
     <div class="thinking-dots">
@@ -296,6 +307,7 @@
     <div class="theme-reveal-label">Today's Thread</div>
     <div class="theme-reveal-word" id="theme-reveal-word">—</div>
   </div>
+  <div class="score-comparison" id="score-comparison"></div>
   <div class="share-text" id="share-text"></div>
   <button class="share-btn" onclick="copyShare()">📋 Share Result</button>
   <div class="next-info">Next Thread in <span class="next-timer" id="next-timer">—</span></div>
@@ -439,6 +451,7 @@ function shakeRow(r) {
   for(let c=0;c<WORD_LENGTH;c++){const t=document.getElementById(`tile-${r}-${c}`);if(t){t.classList.add('shake');setTimeout(()=>t.classList.remove('shake'),400);}}
 }
 function wordSolved(skipped=false) {
+  const firstTry = !skipped && guesses[currentWordIdx].length === 1;
   solvedWords.push(PUZZLE.words[currentWordIdx]);
   const chip=document.createElement('div'); chip.className='solved-chip'; chip.textContent=PUZZLE.words[currentWordIdx];
   document.getElementById('solved-words').appendChild(chip);
@@ -451,7 +464,8 @@ function wordSolved(skipped=false) {
   buildGrid();
   document.getElementById('word-num').textContent=currentWordIdx+1;
   document.getElementById('word-num-display').textContent=currentWordIdx+1;
-  showMsg(`Word ${currentWordIdx}/${PUZZLE.words.length} solved! ✓`,'success');
+  if(firstTry){ showMsg('🎯 First try!','success'); }
+  else { showMsg(`Word ${currentWordIdx}/${PUZZLE.words.length} solved! ✓`,'success'); }
   setTimeout(clearMsg,1800);
 }
 
@@ -510,6 +524,38 @@ function showWinPage() {
   const emojiRows=guesses.map(wg=>wg.length?wg[wg.length-1].map(r=>r.state==='correct'?'🟩':r.state==='present'?'🟨':'⬛').join(''):'⬜⬜⬜⬜⬜').join('\n');
   document.getElementById('share-text').textContent=`THREAD #${PUZZLE.id} ${themeCorrect?'🎉':'😅'}\n${emojiRows}\n${themeCorrect?'🧵✅':'🧵❌'} Theme: ${themeCorrect?'Got it!':'Missed'}\nScore: ${finalScore} | 🔥 Streak: ${streak+1}`;
   updateNextTimer();setInterval(updateNextTimer,1000);
+  submitScore(PUZZLE.id, finalScore);
+}
+
+async function submitScore(puzzleId, score) {
+  const compEl = document.getElementById('score-comparison');
+  compEl.textContent = '...';
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ puzzle_id: puzzleId, score: score })
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/scores?puzzle_id=eq.${puzzleId}&select=score`, {
+      headers: { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'apikey': SUPABASE_ANON_KEY }
+    });
+    const allScores = await res.json();
+    const total = allScores.length;
+    const beaten = allScores.filter(s => s.score < score).length;
+    if (total <= 1) {
+      compEl.textContent = '🏆 You\'re the first player today!';
+    } else {
+      const pct = Math.round((beaten / (total - 1)) * 100);
+      compEl.textContent = `You scored better than ${pct}% of today's players`;
+    }
+  } catch(e) {
+    compEl.textContent = '';
+  }
 }
 
 function updateNextTimer() {
