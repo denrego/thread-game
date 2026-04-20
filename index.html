@@ -640,7 +640,7 @@ function initTransferUI() {
       const status = document.getElementById('restore-status');
       const code = input?.value?.trim();
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code)) {
-        status.textContent = '⚠️ That doesn't look like a valid code.'; return;
+        status.textContent = "⚠️ That doesn't look like a valid code."; return;
       }
       status.textContent = 'Checking…';
       try {
