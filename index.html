@@ -309,7 +309,8 @@
   </div>
   <div class="score-comparison" id="score-comparison"></div>
   <div class="share-text" id="share-text"></div>
-  <button class="share-btn" onclick="copyShare()">📋 Share Result</button>
+  <button class="share-btn" onclick="copyShare()">&#128203; Share Result</button>
+  <div id="streak-transfer" style="margin-top:12px;padding:14px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:left;"><strong>&#128241; Playing on another device?</strong><p style="margin:5px 0 4px;color:var(--text-muted);font-size:12px;">Copy this code to keep your streak anywhere:</p><div style="display:flex;gap:8px;align-items:center;"><input id="player-code-display" readonly style="flex:1;font-family:monospace;font-size:11px;padding:6px 8px;border:1.5px solid var(--border-dark);border-radius:4px;background:var(--bg);color:var(--text);" /><button id="copy-player-code" style="padding:6px 12px;border:none;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font-size:12px;font-weight:600;">Copy</button></div><details style="margin-top:10px;"><summary style="cursor:pointer;color:var(--text-muted);font-size:12px;">Restore streak from another device &#8250;</summary><div style="display:flex;gap:8px;margin-top:8px;align-items:center;"><input id="player-code-input" placeholder="Paste your code here" style="flex:1;font-family:monospace;font-size:11px;padding:6px 8px;border:1.5px solid var(--border-dark);border-radius:4px;background:var(--bg);color:var(--text);" /><button id="restore-player-code" style="padding:6px 12px;border:none;border-radius:4px;background:var(--correct);color:#fff;cursor:pointer;font-size:12px;font-weight:600;">Restore</button></div><p id="restore-status" style="margin:5px 0 0;font-size:11px;color:var(--text-muted);"></p></details></div>
   <div class="next-info">Next Thread in <span class="next-timer" id="next-timer">—</span></div>
 </div>
 
@@ -352,6 +353,37 @@ function saveStreak() {
   localStorage.setItem('thread_streak', JSON.stringify({ count: current + 1, lastPlayed: today }));
 }
 
+// ── PLAYER ID (cross-device streak) ─────────────────────────
+function getOrCreatePlayerId() {
+  const KEY = 'thread_player_id';
+  let id = localStorage.getItem(KEY);
+  if (!id) { id = crypto.randomUUID(); localStorage.setItem(KEY, id); }
+  return id;
+}
+const PLAYER_ID = getOrCreatePlayerId();
+
+async function fetchPlayerData() {
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/get-player-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player_id: PLAYER_ID }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function initStreakFromServer() {
+  const data = await fetchPlayerData();
+  if (!data) return;
+  streak = data.streak;
+  const lastPlayedStr = data.lastPlayed
+    ? new Date(data.lastPlayed + 'T12:00:00').toDateString()
+    : null;
+  localStorage.setItem('thread_streak', JSON.stringify({ count: data.streak, lastPlayed: lastPlayedStr }));
+}
+
 // ── FETCH TODAY'S PUZZLE ─────────────────────────────────────
 async function loadPuzzle() {
   try {
@@ -362,6 +394,7 @@ async function loadPuzzle() {
     if (!data || !data.words) throw new Error('No puzzle');
     PUZZLE = data;
     streak = loadStreak();
+    await initStreakFromServer();
     document.getElementById('puzzle-num').textContent = `Puzzle #${PUZZLE.id}`;
     document.getElementById('streak-badge').textContent = `🔥 ${streak} day streak`;
     document.getElementById('streak-display').textContent = `🔥 ${streak}`;
@@ -525,6 +558,9 @@ function showWinPage() {
   document.getElementById('share-text').textContent=`THREAD #${PUZZLE.id} ${themeCorrect?'🎉':'😅'}\n${emojiRows}\n${themeCorrect?'🧵✅':'🧵❌'} Theme: ${themeCorrect?'Got it!':'Missed'}\nScore: ${finalScore} | 🔥 Streak: ${streak+1}`;
   updateNextTimer();setInterval(updateNextTimer,1000);
   submitScore(PUZZLE.id, finalScore);
+  // Populate and wire the streak-transfer widget
+  const pcDisplay = document.getElementById('player-code-display');
+  if (pcDisplay) { pcDisplay.value = PLAYER_ID; initTransferUI(); }
 }
 
 async function submitScore(puzzleId, score) {
@@ -539,7 +575,7 @@ async function submitScore(puzzleId, score) {
         'apikey': SUPABASE_ANON_KEY,
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({ puzzle_id: puzzleId, score: score })
+      body: JSON.stringify({ puzzle_id: puzzleId, score: score, player_id: PLAYER_ID })
     });
     const res = await fetch(`${SUPABASE_URL}/rest/v1/scores?puzzle_id=eq.${puzzleId}&select=score`, {
       headers: { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'apikey': SUPABASE_ANON_KEY }
@@ -583,6 +619,51 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter')submitGuess();else if(e.key==='Backspace')removeLetter();else if(/^[a-zA-Z]$/.test(e.key))addLetter(e.key.toUpperCase());
 });
 document.getElementById('theme-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitTheme();});
+
+// ── STREAK TRANSFER UI ───────────────────────────────────────────────────────
+function initTransferUI() {
+  const copyBtn = document.getElementById('copy-player-code');
+  if (copyBtn && !copyBtn._wired) {
+    copyBtn._wired = true;
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(PLAYER_ID).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    };
+  }
+  const restoreBtn = document.getElementById('restore-player-code');
+  if (restoreBtn && !restoreBtn._wired) {
+    restoreBtn._wired = true;
+    restoreBtn.onclick = async () => {
+      const input = document.getElementById('player-code-input');
+      const status = document.getElementById('restore-status');
+      const code = input?.value?.trim();
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code)) {
+        status.textContent = '⚠️ That doesn't look like a valid code.'; return;
+      }
+      status.textContent = 'Checking…';
+      try {
+        const res = await fetch(SUPABASE_URL + '/functions/v1/get-player-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ player_id: code }),
+        });
+        const data = await res.json();
+        if (!data || data.totalGames === 0) {
+          status.textContent = '⚠️ No games found for that code.'; return;
+        }
+        localStorage.setItem('thread_player_id', code);
+        localStorage.setItem('thread_streak', JSON.stringify({
+          count: data.streak,
+          lastPlayed: data.lastPlayed ? new Date(data.lastPlayed + 'T12:00:00').toDateString() : null,
+        }));
+        status.textContent = '✅ Restored! (' + data.streak + ' day streak, ' + data.totalGames + ' games). Reloading…';
+        setTimeout(() => location.reload(), 1500);
+      } catch { status.textContent = '⚠️ Error checking code. Try again.'; }
+    };
+  }
+}
 
 // ── HOW TO PLAY MODAL ────────────────────────────────────────
 function openModal() { document.getElementById('modal-overlay').classList.add('show'); }
