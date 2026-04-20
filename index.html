@@ -332,6 +332,7 @@ let baseScore = 0;
 let themeCorrect = false;
 let themeScore = 0;
 let streak = 0;
+let validWords = null;  // Set of valid 5-letter words; null = not yet loaded
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
@@ -384,6 +385,23 @@ async function initStreakFromServer() {
   localStorage.setItem('thread_streak', JSON.stringify({ count: data.streak, lastPlayed: lastPlayedStr }));
 }
 
+// ── WORD LIST VALIDATION ─────────────────────────────────────
+// Fetches ~14k valid 5-letter English words in the background.
+// Falls back silently — if it fails, any 5-letter string is accepted.
+async function loadWordList() {
+  try {
+    const res = await fetch(
+      'https://raw.githubusercontent.com/tabatkins/wordle-list/main/words',
+      { cache: 'force-cache' }
+    );
+    if (!res.ok) return;
+    const text = await res.text();
+    validWords = new Set(text.trim().split('\n').map(w => w.trim().toUpperCase()));
+  } catch {
+    validWords = null; // validation disabled — fail open
+  }
+}
+
 // ── FETCH TODAY'S PUZZLE ─────────────────────────────────────
 async function loadPuzzle() {
   try {
@@ -393,6 +411,7 @@ async function loadPuzzle() {
     const data = await res.json();
     if (!data || !data.words) throw new Error('No puzzle');
     PUZZLE = data;
+    loadWordList(); // fire-and-forget — loads in background
     streak = loadStreak();
     await initStreakFromServer();
     document.getElementById('puzzle-num').textContent = `Puzzle #${PUZZLE.id}`;
@@ -451,6 +470,10 @@ function submitGuess() {
   if (currentGuess.length !== WORD_LENGTH) { showMsg('Not enough letters','error'); shakeRow(guesses[currentWordIdx].length); return; }
   const guessWord = currentGuess.join('');
   const target = PUZZLE.words[currentWordIdx];
+  // Reject non-words — always allow target word in case it's not in the list
+  if (validWords && !validWords.has(guessWord) && guessWord !== target) {
+    showMsg('Not a valid word', 'error'); shakeRow(guesses[currentWordIdx].length); return;
+  }
   const result = evaluate(guessWord, target);
   const rowIdx = guesses[currentWordIdx].length;
   result.forEach((item,i) => {
